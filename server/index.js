@@ -111,8 +111,9 @@ let vehicles = [
   { id: "auto-04", type: "e-rickshaw", kind: "random", lat: 26.4495, lng: 80.3420, headingLat: 0, headingLng: 0 },
 ];
 
-const wss = new WebSocketServer({ port: 4000 });
-console.log("✅ WebSocket server running on ws://localhost:4000");
+const PORT = process.env.PORT || 4000;
+const wss = new WebSocketServer({ port: PORT });
+console.log(`✅ WebSocket server running on port ${PORT}`);
 
 function broadcastToAllClients(data) {
   const message = JSON.stringify(data);
