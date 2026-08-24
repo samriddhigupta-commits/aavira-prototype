@@ -1,5 +1,3 @@
-// app/test-map/page.jsx
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -66,7 +64,12 @@ export default function TestMapPage() {
       return;
     }
 
-    const route = findMatchingRoute(searchSelection.fromId, searchSelection.viaId, searchSelection.toId);
+    const route = findMatchingRoute(
+      searchSelection.fromId,
+      searchSelection.viaId,
+      searchSelection.toId
+    );
+
     setMatchedRoute(route);
     setRouteLoading(true);
 
@@ -77,7 +80,6 @@ export default function TestMapPage() {
     async function loadRouteSegments() {
       const segments = [];
       let totalDistanceKm = 0;
-
       const lineColor = route ? "#f97316" : "#a855f7";
 
       if (viaStop) {
@@ -140,15 +142,23 @@ export default function TestMapPage() {
 
   const primaryEstimatedFare =
     routeDistanceKm !== null && finalFilteredVehicles.length > 0
-      ? estimateCost(matchedRoute ? "bus" : "e-rickshaw", routeDistanceKm, finalFilteredVehicles[0].id)
+      ? estimateCost(
+          matchedRoute ? "bus" : "e-rickshaw",
+          routeDistanceKm,
+          finalFilteredVehicles[0].id
+        )
       : null;
 
   const getVehicleIcon = (type) => {
     switch (type) {
-      case "bus": return "🚌";
-      case "e-rickshaw": return "🛺";
-      case "auto": return "🚕";
-      default: return "🚐";
+      case "bus":
+        return "🚌";
+      case "e-rickshaw":
+        return "🛺";
+      case "auto":
+        return "🚕";
+      default:
+        return "🚐";
     }
   };
 
@@ -163,7 +173,9 @@ export default function TestMapPage() {
               </h1>
             </div>
 
-            <p className="text-xs text-gray-500 mb-4 font-medium uppercase tracking-wider">Plan your journey</p>
+            <p className="text-xs text-gray-500 mb-4 font-medium uppercase tracking-wider">
+              Plan your journey
+            </p>
 
             <RouteSearch stops={fakeStops} onSearch={handleRouteSearch} />
 
@@ -183,7 +195,9 @@ export default function TestMapPage() {
                 {!routeLoading && matchedRoute && routeDistanceKm !== null && (
                   <div className="bg-indigo-50 rounded-lg p-3 space-y-1">
                     <p className="font-medium text-indigo-900">{matchedRoute.name}</p>
-                    <p className="text-xs text-gray-600">Distance: {routeDistanceKm.toFixed(1)} km</p>
+                    <p className="text-xs text-gray-600">
+                      Distance: {routeDistanceKm.toFixed(1)} km
+                    </p>
                     <p className="text-sm font-bold text-indigo-700 flex items-center gap-1">
                       <IndianRupee className="w-3.5 h-3.5" /> Fare: ₹{primaryEstimatedFare}
                     </p>
@@ -192,7 +206,9 @@ export default function TestMapPage() {
 
                 {!routeLoading && !matchedRoute && routeDistanceKm !== null && (
                   <div className="bg-purple-50 rounded-lg p-3 space-y-1">
-                    <p className="font-medium text-purple-900">No direct bus — auto/e-rickshaw route shown</p>
+                    <p className="font-medium text-purple-900">
+                      No direct bus — auto/e-rickshaw route shown
+                    </p>
                     <p className="text-xs text-gray-600">
                       Road distance: {routeDistanceKm.toFixed(1)} km
                     </p>
@@ -206,8 +222,13 @@ export default function TestMapPage() {
 
             {!searchSelection && (
               <div className="mt-5 pt-5 border-t border-gray-100">
-                <p className="text-xs text-gray-500 mb-3 font-medium uppercase tracking-wider">Transport Mode</p>
-                <VehicleFilter selectedType={selectedType} onSelectType={setSelectedType} />
+                <p className="text-xs text-gray-500 mb-3 font-medium uppercase tracking-wider">
+                  Transport Mode
+                </p>
+                <VehicleFilter
+                  selectedType={selectedType}
+                  onSelectType={setSelectedType}
+                />
               </div>
             )}
           </div>
@@ -234,7 +255,10 @@ export default function TestMapPage() {
           isBottomSheetOpen ? "translate-y-0" : "translate-y-[85%]"
         }`}
       >
-        <div className="w-full flex justify-center py-3 cursor-pointer" onClick={() => setIsBottomSheetOpen(!isBottomSheetOpen)}>
+        <div
+          className="w-full flex justify-center py-3 cursor-pointer"
+          onClick={() => setIsBottomSheetOpen(!isBottomSheetOpen)}
+        >
           <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
         </div>
         <div className="px-5 pb-6 max-h-[50vh] overflow-y-auto">
@@ -255,7 +279,9 @@ export default function TestMapPage() {
 function VehicleListHeader({ count }) {
   return (
     <div className="flex items-center justify-between mb-4">
-      <h2 className="text-lg font-bold text-gray-900">{count} {count === 1 ? "Vehicle" : "Vehicles"}</h2>
+      <h2 className="text-lg font-bold text-gray-900">
+        {count} {count === 1 ? "Vehicle" : "Vehicles"}
+      </h2>
       <span className="flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -283,47 +309,69 @@ function VehicleList({ vehicles, getIcon, routeDistanceKm, matchedRoute, pickupS
       {vehicles.map((vehicle) => {
         const vehicleFare =
           routeDistanceKm !== null
-            ? estimateCost(matchedRoute ? "bus" : vehicle.type, routeDistanceKm, vehicle.id)
+            ? estimateCost(
+                matchedRoute ? "bus" : vehicle.type,
+                routeDistanceKm,
+                vehicle.id
+              )
             : null;
 
+        // Uses effective speed fallback (15 km/h) if vehicle speed is 0 or unrecorded
+        const effectiveSpeed = vehicle.speed && vehicle.speed > 0 ? vehicle.speed : 15;
         const etaMinutes =
-          pickupStop && vehicle.lat != null && vehicle.lng != null && vehicle.speed > 0
+          pickupStop && vehicle.lat != null && vehicle.lng != null
             ? Math.max(
                 1,
                 Math.round(
-                  (calculateDistanceKm(vehicle.lat, vehicle.lng, pickupStop.lat, pickupStop.lng) /
-                    vehicle.speed) *
+                  (calculateDistanceKm(
+                    vehicle.lat,
+                    vehicle.lng,
+                    pickupStop.lat,
+                    pickupStop.lng
+                  ) /
+                    effectiveSpeed) *
                     60
                 )
               )
             : null;
 
         return (
-          <div key={vehicle.id} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div
+            key={vehicle.id}
+            className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow"
+          >
             <div className="flex justify-between items-start">
               <div className="flex gap-3">
                 <div className="text-3xl bg-gray-50 w-12 h-12 flex items-center justify-center rounded-xl border border-gray-100">
                   {getIcon(vehicle.type)}
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900 capitalize">{vehicle.type} - {vehicle.id.slice(-2)}</h3>
+                  <h3 className="font-bold text-gray-900 capitalize">
+                    {vehicle.type} - {vehicle.id.slice(-2)}
+                  </h3>
                   <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                     <MapPin className="w-3 h-3" /> On Route
                   </p>
-                  {etaMinutes !== null && (
+                  {etaMinutes !== null ? (
                     <p className="text-xs text-emerald-600 flex items-center gap-1 mt-0.5 font-medium">
                       <Clock className="w-3 h-3" /> {etaMinutes} min away
+                      {vehicle.speed === 0 && " (idle)"}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-amber-600 flex items-center gap-1 mt-0.5">
+                      <Clock className="w-3 h-3" /> ETA unavailable
                     </p>
                   )}
                 </div>
               </div>
+
               <div className="text-right">
                 {vehicleFare !== null ? (
                   <p className="text-sm font-bold text-indigo-600 flex items-center justify-end gap-1">
                     <IndianRupee className="w-3.5 h-3.5" /> {vehicleFare}
                   </p>
                 ) : (
-                  <p className="text-xs text-gray-400">{vehicle.speed} km/h</p>
+                  <p className="text-xs text-gray-400">{vehicle.speed ?? 0} km/h</p>
                 )}
               </div>
             </div>
