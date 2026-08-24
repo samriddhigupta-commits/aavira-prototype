@@ -48,7 +48,7 @@ function findMatchingRoute(fromId, viaId, toId) {
 }
 
 export default function TestMapPage() {
-  const liveVehicles = useVehicleSocket(process.env.wss://aavira-prototype-production-8dd3.up.railway.app || "ws://localhost:4000");
+  const liveVehicles = useVehicleSocket(process.env.wss:NEXT_PUBLIC_WS_URL || "ws://localhost:4000");
   const [selectedType, setSelectedType] = useState("all");
   const [searchSelection, setSearchSelection] = useState(null);
   const [matchedRoute, setMatchedRoute] = useState(null);
