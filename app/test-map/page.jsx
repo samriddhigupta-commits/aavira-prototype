@@ -45,6 +45,35 @@ function findMatchingRoute(fromId, viaId, toId) {
   );
 }
 
+// Snaps a raw vehicle coordinate to the closest point along fetched road route segments
+function snapVehicleToRoad(vehicle, routeSegments) {
+  if (!vehicle.lat || !vehicle.lng || !routeSegments || routeSegments.length === 0) {
+    return vehicle;
+  }
+
+  let minDistance = Infinity;
+  let snappedPoint = { lat: vehicle.lat, lng: vehicle.lng };
+
+  // Iterate over all segments and polyline points to find the nearest point on the road
+  for (const segment of routeSegments) {
+    if (!segment.coords) continue;
+    for (const [lat, lng] of segment.coords) {
+      const dist = calculateDistanceKm(vehicle.lat, vehicle.lng, lat, lng);
+      if (dist < minDistance) {
+        minDistance = dist;
+        snappedPoint = { lat, lng };
+      }
+    }
+  }
+
+  // Only snap if within a reasonable distance threshold (e.g., 2km radius)
+  if (minDistance < 2.0) {
+    return { ...vehicle, lat: snappedPoint.lat, lng: snappedPoint.lng };
+  }
+
+  return vehicle;
+}
+
 export default function TestMapPage() {
   const liveVehicles = useVehicleSocket(process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:4000");
 
@@ -128,10 +157,9 @@ export default function TestMapPage() {
 
   const allVehicles = liveVehicles || [];
 
-  // Pickup stop for the active search — used to calculate per-vehicle ETA.
   const pickupStop = searchSelection ? findStopById(searchSelection.fromId) : null;
 
-  const finalFilteredVehicles =
+  const filteredVehicles =
     searchSelection && matchedRoute
       ? allVehicles.filter((v) => v.id === matchedRoute.vehicleId)
       : searchSelection && !matchedRoute
@@ -139,6 +167,9 @@ export default function TestMapPage() {
       : selectedType === "all"
       ? allVehicles
       : allVehicles.filter((v) => v.type === selectedType);
+
+  // Snap filtered vehicles onto the road segments so markers stay on streets
+  const finalFilteredVehicles = filteredVehicles.map((v) => snapVehicleToRoad(v, routeSegments));
 
   const primaryEstimatedFare =
     routeDistanceKm !== null && finalFilteredVehicles.length > 0
@@ -316,7 +347,6 @@ function VehicleList({ vehicles, getIcon, routeDistanceKm, matchedRoute, pickupS
               )
             : null;
 
-        // Uses effective speed fallback (15 km/h) if vehicle speed is 0 or unrecorded
         const effectiveSpeed = vehicle.speed && vehicle.speed > 0 ? vehicle.speed : 15;
         const etaMinutes =
           pickupStop && vehicle.lat != null && vehicle.lng != null
