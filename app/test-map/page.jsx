@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { Navigation, X, Info, MapPin, IndianRupee } from "lucide-react";
+import { Navigation, X, Info, MapPin, IndianRupee, Clock } from "lucide-react";
 import useVehicleSocket from "../../hooks/useVehicleSocket";
 import VehicleFilter from "../../components/VehicleFilter";
 import RouteSearch from "../../components/RouteSearch";
@@ -126,6 +126,9 @@ export default function TestMapPage() {
 
   const allVehicles = liveVehicles || [];
 
+  // Pickup stop for the active search — used to calculate per-vehicle ETA.
+  const pickupStop = searchSelection ? findStopById(searchSelection.fromId) : null;
+
   const finalFilteredVehicles =
     searchSelection && matchedRoute
       ? allVehicles.filter((v) => v.id === matchedRoute.vehicleId)
@@ -135,10 +138,6 @@ export default function TestMapPage() {
       ? allVehicles
       : allVehicles.filter((v) => v.type === selectedType);
 
-  // CHANGED: this is now just the fare for the FIRST/primary matched
-  // vehicle (used in the top summary card). The full vehicle LIST below
-  // calculates its OWN fare per vehicle, so different autos show
-  // different prices for the same trip.
   const primaryEstimatedFare =
     routeDistanceKm !== null && finalFilteredVehicles.length > 0
       ? estimateCost(matchedRoute ? "bus" : "e-rickshaw", routeDistanceKm, finalFilteredVehicles[0].id)
@@ -221,6 +220,7 @@ export default function TestMapPage() {
             getIcon={getVehicleIcon}
             routeDistanceKm={routeDistanceKm}
             matchedRoute={matchedRoute}
+            pickupStop={pickupStop}
           />
         </div>
       </div>
@@ -244,6 +244,7 @@ export default function TestMapPage() {
             getIcon={getVehicleIcon}
             routeDistanceKm={routeDistanceKm}
             matchedRoute={matchedRoute}
+            pickupStop={pickupStop}
           />
         </div>
       </div>
@@ -266,10 +267,7 @@ function VehicleListHeader({ count }) {
   );
 }
 
-// CHANGED: now calculates its OWN fare PER VEHICLE, using each
-// vehicle's own id — this is what makes autos genuinely differ in
-// price, instead of every vehicle showing the same number.
-function VehicleList({ vehicles, getIcon, routeDistanceKm, matchedRoute }) {
+function VehicleList({ vehicles, getIcon, routeDistanceKm, matchedRoute, pickupStop }) {
   if (vehicles.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -283,11 +281,21 @@ function VehicleList({ vehicles, getIcon, routeDistanceKm, matchedRoute }) {
   return (
     <div className="space-y-3">
       {vehicles.map((vehicle) => {
-        // Per-vehicle fare, using THIS vehicle's own id — see
-        // estimateCost() in lib/geoUtils.js for how the variation works.
         const vehicleFare =
           routeDistanceKm !== null
             ? estimateCost(matchedRoute ? "bus" : vehicle.type, routeDistanceKm, vehicle.id)
+            : null;
+
+        const etaMinutes =
+          pickupStop && vehicle.lat != null && vehicle.lng != null && vehicle.speed > 0
+            ? Math.max(
+                1,
+                Math.round(
+                  (calculateDistanceKm(vehicle.lat, vehicle.lng, pickupStop.lat, pickupStop.lng) /
+                    vehicle.speed) *
+                    60
+                )
+              )
             : null;
 
         return (
@@ -302,6 +310,11 @@ function VehicleList({ vehicles, getIcon, routeDistanceKm, matchedRoute }) {
                   <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                     <MapPin className="w-3 h-3" /> On Route
                   </p>
+                  {etaMinutes !== null && (
+                    <p className="text-xs text-emerald-600 flex items-center gap-1 mt-0.5 font-medium">
+                      <Clock className="w-3 h-3" /> {etaMinutes} min away
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="text-right">
